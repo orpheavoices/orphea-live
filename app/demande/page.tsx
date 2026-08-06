@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-export default function DemandePage() {
+function DemandeForm() {
   const searchParams = useSearchParams();
 
   const titre = searchParams.get("titre") || "";
@@ -65,7 +65,6 @@ export default function DemandePage() {
   return (
     <main className="min-h-screen bg-slate-900 flex justify-center p-6">
       <div className="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-2xl">
-
         <h1 className="text-4xl font-bold text-slate-900 mb-2">
           🎤 Demande de chanson
         </h1>
@@ -76,7 +75,6 @@ export default function DemandePage() {
         </div>
 
         <div className="space-y-6">
-
           <div>
             <label className="block font-semibold mb-2">
               Votre prénom <span className="text-red-600">*</span>
@@ -126,10 +124,16 @@ export default function DemandePage() {
           >
             {envoiEnCours ? "Envoi..." : "❤️ Envoyer la demande"}
           </button>
-
         </div>
-
       </div>
     </main>
+  );
+}
+
+export default function DemandePage() {
+  return (
+    <Suspense fallback={<div className="p-10">Chargement...</div>}>
+      <DemandeForm />
+    </Suspense>
   );
 }
