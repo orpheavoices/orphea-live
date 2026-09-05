@@ -73,7 +73,53 @@ export default function ChanteurPage() {
     setSoiree(null);
     setDemandes([]);
   }
+  async function chanter(demande: any) {
+    // Cherche la chanson dans le catalogue
+    const { data: chanson, error: chansonError } = await supabase
+      .from("songs")
+      .select("title, artist, karaoke_url, video_url")
+      .eq("title", demande.titre)
+      .eq("artist", demande.artiste)
+      .maybeSingle();
 
+    if (chansonError) {
+      console.error("Erreur lors de la recherche de la chanson :", chansonError);
+      alert("Impossible de récupérer les informations de la chanson.");
+      return;
+    }
+
+    if (!chanson) {
+      alert(
+        `La chanson "${demande.titre}" de ${demande.artiste} n'a pas été trouvée dans le catalogue.`
+      );
+      return;
+    }
+
+    // Passe la demande en cours
+    const { error: statutError } = await supabase
+      .from("demandes")
+      .update({
+        statut: "En cours",
+      })
+      .eq("id", demande.id);
+
+    if (statutError) {
+      console.error("Erreur lors de la mise à jour de la demande :", statutError);
+      alert("Impossible de démarrer la chanson.");
+      return;
+    }
+
+    // Prépare l'adresse du lecteur
+    const params = new URLSearchParams({
+      titre: demande.titre || chanson.title || "",
+      artiste: demande.artiste || chanson.artist || "",
+      video: chanson.video_url || "",
+      karaoke: chanson.karaoke_url || "",
+      demandeId: String(demande.id),
+    });
+
+    window.location.href = `/regie/lecteur?${params.toString()}`;
+  }
   useEffect(() => {
     verifierSoiree();
 
@@ -173,9 +219,12 @@ export default function ChanteurPage() {
               </p>
             )}
 
-            <button className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold">
-              🎤 Je chante
-            </button>
+            <button
+  onClick={() => chanter(demande)}
+  className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold"
+>
+  🎤 Je chante
+</button>
 
           </div>
         ))}
