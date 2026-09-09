@@ -14,6 +14,7 @@ type Demande = {
   soiree_id: number;
   karaoke_url: string | null;
   video_url: string | null;
+  presentation: string | null;
 };
 
 type Chanson = {
@@ -32,6 +33,7 @@ type Chanson = {
   karaoke_url: string | null;
   video_url: string | null;
   decade: string | null;
+  actif: boolean;
 };
 
 export default function RegiePage() {
@@ -98,8 +100,8 @@ setSoireeDateDebut(soiree.date_debut ?? null);
     const { data: demandesData, error: demandesError } = await supabase
       .from("demandes")
       .select(
-        "id, titre, artiste, prenom, dedicace, message, statut, soiree_id"
-      )
+  "id, titre, artiste, prenom, dedicace, message, statut, soiree_id, presentation"
+)
       .eq("soiree_id", soiree.id)
       .order("id", { ascending: true });
 
@@ -113,7 +115,7 @@ setSoireeDateDebut(soiree.date_debut ?? null);
 
     const { data: chansonsData, error: chansonsError } = await supabase
       .from("songs")
-      .select("title, artist, karaoke_url, video_url");
+      .select("title, artist, karaoke_url, video_url, presentation");
 
     if (chansonsError) {
       console.error(chansonsError);
@@ -136,19 +138,41 @@ setSoireeDateDebut(soiree.date_debut ?? null);
           ...demande,
           karaoke_url: chanson?.karaoke_url ?? null,
           video_url: chanson?.video_url ?? null,
+          presentation: chanson?.presentation ?? null,
         };
+        
       }
     );
 
     setDemandes(demandesAvecKaraoke);
     setChargement(false);
   }
+async function basculerActif(chanson: Chanson) {
+  const nouvelEtat = !chanson.actif;
 
+  const { error } = await supabase
+    .from("songs")
+    .update({ actif: nouvelEtat })
+    .eq("id", chanson.id);
+
+  if (error) {
+    setErreur("Impossible de modifier le statut de la chanson.");
+    return;
+  }
+
+  setChansons(anciennes =>
+    anciennes.map(c =>
+      c.id === chanson.id
+        ? { ...c, actif: nouvelEtat }
+        : c
+    )
+  );
+}
   async function chargerCatalogue() {
     const { data, error } = await supabase
       .from("songs")
       .select(
-        "id, title, artist, year, duration, difficulty, status, favorite, notes, langue, presentation, interpretation, karaoke_url, video_url, decade"
+        "id, title, artist, year, duration, difficulty, status, favorite, notes, langue, presentation, interpretation, karaoke_url, video_url, decade,actif"
       )
       .order("title", { ascending: true });
 
@@ -672,7 +696,11 @@ useEffect(() => {
                             <p className="text-gray-300 text-lg">
                               {demande.artiste}
                             </p>
-
+{demande.presentation && (
+  <p className="text-gray-400 mt-2 italic">
+    {demande.presentation}
+  </p>
+)}
                             <p className="text-[#d4af37] font-semibold mt-3">
                               👤 {demande.prenom}
                             </p>
@@ -876,7 +904,12 @@ useEffect(() => {
                   >
                     ＋ Ajouter une chanson
                   </button>
-
+<button
+  onClick={() => (window.location.href = "/regie/verification")}
+  className="border border-[#d4af37] text-[#d4af37] hover:bg-[#d4af37] hover:text-black font-bold px-6 py-3 rounded-xl transition"
+>
+  🎬 Vérifier le catalogue
+</button>
                 </div>
 
                 {/* FORMULAIRE */}
@@ -1235,7 +1268,16 @@ useEffect(() => {
                         >
                           ✏️ Modifier
                         </button>
-
+<button
+  onClick={() => basculerActif(chanson)}
+  className={`border rounded-lg px-4 py-2 font-semibold ${
+    chanson.actif
+      ? "bg-green-900/40 border-green-500 text-green-400"
+      : "bg-red-900/40 border-red-500 text-red-400"
+  }`}
+>
+  {chanson.actif ? "🟢 Désactiver" : "⚪ Réactiver"}
+</button>
                       </div>
 
                     </article>

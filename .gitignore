@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Videos - kept locally for demo
 /public/karaoke/
+# Fichiers de sauvegarde locaux
+*.bak
+*.erreur

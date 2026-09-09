@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -40,70 +40,68 @@ export default function RecherchePage() {
   const [erreur, setErreur] = useState("");
 
   async function chargerChansons() {
+    console.log(">>> CHARGEMENT DU CATALOGUE <<<");
+
     setChargement(true);
     setErreur("");
 
-    const [
-      { data: songsData, error: songsError },
-      { data: genresData, error: genresError },
-      { data: songGenresData, error: songGenresError },
-    ] = await Promise.all([
-      supabase
-        .from("songs")
-        .select(
-          "id, title, artist, year, duration, status, favorite, notes, langue, presentation, karaoke_url, decade"
-        )
-        .order("title", { ascending: true }),
+    try {
+      const response = await fetch("/api/catalogue");
 
-      supabase
-        .from("genres")
-        .select("id, nom")
-        .order("nom", { ascending: true }),
+      if (!response.ok) {
+        throw new Error("Erreur API catalogue : " + response.status);
+      }
 
-      supabase
-        .from("song_genres")
-        .select("song_id, genre_id"),
-    ]);
+      const result = await response.json();
 
-    if (songsError || genresError || songGenresError) {
-      console.error(songsError || genresError || songGenresError);
+      const songs = result.songs ?? [];
+      const genres = result.genres ?? [];
+      const songGenres = result.songGenres ?? [];
+
+      const genresParId = new Map<number, string>();
+
+      genres.forEach((genre: Genre) => {
+        genresParId.set(genre.id, genre.nom);
+      });
+
+      const genresParChanson = new Map<number, string[]>();
+
+      songGenres.forEach(
+        (relation: { song_id: number; genre_id: number }) => {
+          const nomGenre = genresParId.get(relation.genre_id);
+
+          if (!nomGenre) return;
+
+          const liste = genresParChanson.get(relation.song_id) ?? [];
+          liste.push(nomGenre);
+          genresParChanson.set(relation.song_id, liste);
+        }
+      );
+
+      const chansonsAvecGenres: Chanson[] = songs.map(
+        (chanson: Omit<Chanson, "genres">) => ({
+          ...chanson,
+          genres: genresParChanson.get(chanson.id) ?? [],
+        })
+      );
+
+      setChansons(chansonsAvecGenres);
+      setGenres(genres);
+      setChargement(false);
+
+      console.log(
+        ">>> CATALOGUE CHARGE <<<",
+        chansonsAvecGenres.length
+      );
+    } catch (error) {
+      console.error(">>> ERREUR CATALOGUE <<<", error);
+
       setErreur("Impossible de charger le catalogue.");
       setChansons([]);
       setGenres([]);
       setChargement(false);
-      return;
     }
-
-    const genresParId = new Map<number, string>();
-
-    (genresData ?? []).forEach((genre) => {
-      genresParId.set(genre.id, genre.nom);
-    });
-
-    const genresParChanson = new Map<number, string[]>();
-
-    (songGenresData ?? []).forEach((relation) => {
-      const nomGenre = genresParId.get(relation.genre_id);
-
-      if (!nomGenre) return;
-
-      const liste = genresParChanson.get(relation.song_id) ?? [];
-      liste.push(nomGenre);
-      genresParChanson.set(relation.song_id, liste);
-    });
-
-    const chansonsAvecGenres: Chanson[] = (songsData ?? []).map(
-      (chanson) => ({
-        ...chanson,
-        genres: genresParChanson.get(chanson.id) ?? [],
-      })
-    );
-
-    setChansons(chansonsAvecGenres);
-    setGenres(genresData ?? []);
-    setChargement(false);
   }
-
   useEffect(() => {
     chargerChansons();
   }, []);
@@ -192,7 +190,7 @@ export default function RecherchePage() {
 
             <div className="flex justify-center items-center gap-4 mt-4">
               <span className="h-px w-16 bg-[#d4af37]" />
-              <span className="text-[#d4af37] text-xl">♪</span>
+              <span className="text-[#d4af37] text-xl">♫</span>
               <span className="h-px w-16 bg-[#d4af37]" />
             </div>
 
@@ -314,7 +312,7 @@ export default function RecherchePage() {
                   />
 
                   <span>
-                    ❤️ Mes coups de cœur uniquement
+                    <span>♥ Mes coups de cœur uniquement</span>
                   </span>
 
                 </label>
@@ -372,7 +370,7 @@ export default function RecherchePage() {
 
                     {chanson.favorite && (
                       <span className="text-[#d4af37] font-semibold">
-                        ♥ Coup de cœur
+                        <span className="text-[#d4af37] font-semibold">♥ Coup de cœur</span>
                       </span>
                     )}
 
@@ -442,7 +440,7 @@ export default function RecherchePage() {
                 <div className="text-center border border-[#333] bg-[#111111] rounded-2xl py-12 px-5">
 
                   <div className="text-4xl mb-4">
-                    ♪
+                    ♫
                   </div>
 
                   <p className="text-gray-300 text-lg">
@@ -464,7 +462,7 @@ export default function RecherchePage() {
 
             <div className="flex justify-center items-center gap-4 mb-4">
               <span className="h-px w-16 bg-[#c9a227]" />
-              <span className="text-[#d4af37] text-xl">♪</span>
+              <span className="text-[#d4af37] text-xl">♫</span>
               <span className="h-px w-16 bg-[#c9a227]" />
             </div>
 
@@ -479,3 +477,9 @@ export default function RecherchePage() {
     </main>
   );
 }
+
+
+
+
+
+
