@@ -100,8 +100,7 @@ setSoireeDateDebut(soiree.date_debut ?? null);
     const { data: demandesData, error: demandesError } = await supabase
       .from("demandes")
       .select(
-  "id, titre, artiste, prenom, dedicace, message, statut, soiree_id, presentation"
-)
+  "id, titre, artiste, prenom, dedicace, message, statut, soiree_id")
       .eq("soiree_id", soiree.id)
       .order("id", { ascending: true });
 
