@@ -195,6 +195,22 @@ async function demarrerSoiree() {
   setGestionSoireeEnCours(true);
   setErreur("");
 
+  // Fermer toute ancienne soirée encore ouverte
+  const { error: erreurFermeture } = await supabase
+    .from("soirees")
+    .update({
+      statut: "terminee",
+      date_fin: new Date().toISOString(),
+    })
+    .eq("statut", "ouverte");
+
+  if (erreurFermeture) {
+    console.error("ERREUR FERMETURE SOIREE :", erreurFermeture);
+    setErreur("Impossible de fermer l'ancienne soirée.");
+    setGestionSoireeEnCours(false);
+    return;
+  }
+
   const { data, error } = await supabase
     .from("soirees")
     .insert({
