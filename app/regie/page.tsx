@@ -77,7 +77,10 @@ export default function RegiePage() {
       .from("soirees")
       .select("id, date_debut")
       .eq("statut", "ouverte")
+      .order("date_debut", { ascending: false })
+      .limit(1)
       .maybeSingle();
+      
 
     if (erreurSoiree) {
       setErreur("ERREUR SOIREE : " + erreurSoiree.message + " | Code : " + erreurSoiree.code + " | Details : " + erreurSoiree.details + " | Hint : " + erreurSoiree.hint);
