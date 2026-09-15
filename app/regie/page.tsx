@@ -426,38 +426,34 @@ setTimeout(() => {
     setChansonEnEdition(null);
   }
   async function enregistrerRepetition(chanson: Chanson) {
+  const nouvelleDate = new Date().toISOString().split("T")[0];
+  const nouveauNombre = (chanson.nombre_repetitions ?? 0) + 1;
+
   const { data, error } = await supabase
     .from("songs")
-    .select("nombre_repetitions")
+    .update({
+      derniere_repetition: nouvelleDate,
+      nombre_repetitions: nouveauNombre,
+    })
     .eq("id", chanson.id)
+    .select("id, derniere_repetition, nombre_repetitions")
     .single();
 
   if (error) {
-    console.error("Erreur lecture répétitions :", error);
+    console.error("Erreur enregistrement répétition :", error);
+    alert("ERREUR : " + error.message);
     return;
   }
 
-  const { error: erreurMiseAJour } = await supabase
-    .from("songs")
-    .update({
-      derniere_repetition: new Date().toISOString().split("T")[0],
-      nombre_repetitions: (data.nombre_repetitions ?? 0) + 1,
-    })
-    .eq("id", chanson.id);
-
-  if (erreurMiseAJour) {
-    console.error("Erreur enregistrement répétition :", erreurMiseAJour);
-    return;
-  }
+  console.log("Répétition enregistrée :", data);
 
   setChansons((anciennes) =>
     anciennes.map((c) =>
       c.id === chanson.id
         ? {
             ...c,
-            derniere_repetition:
-              new Date().toISOString().split("T")[0],
-            nombre_repetitions: (data.nombre_repetitions ?? 0) + 1,
+            derniere_repetition: nouvelleDate,
+            nombre_repetitions: nouveauNombre,
           }
         : c
     )
