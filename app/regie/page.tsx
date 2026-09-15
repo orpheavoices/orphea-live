@@ -1333,8 +1333,7 @@ async function supprimerChanson(chanson: Chanson) {
 
                             {chanson.video_url && (
   <button
-    onClick={() => {
-  alert("LE SUIVI EST BIEN APPELÉ");
+   onClick={() => {
   void enregistrerRepetition(chanson);
   window.open(chanson.video_url!, "_blank");
 }}
@@ -1353,17 +1352,7 @@ async function supprimerChanson(chanson: Chanson) {
                           </div>
 
                         </div>
-{chanson.video_url && (
-  <button
-   onClick={() => {
-  void enregistrerRepetition(chanson);
-  window.open(chanson.video_url!, "_blank");
-}}
-    className="bg-green-900/40 hover:bg-green-800/60 border border-green-500 text-green-400 rounded-lg px-4 py-2 font-semibold"
-  >
-    ▶️ Vidéo
-  </button>
-)}
+
 <button
   onClick={() => modifierChanson(chanson)}
   className="bg-[#222] hover:bg-[#333] border border-[#555] hover:border-[#d4af37] text-white font-bold px-5 py-3 rounded-xl transition"
