@@ -391,7 +391,7 @@ useEffect(() => {
     setVideoUrl("");
     setDecade("");
 
-    setAfficherFormulaire(true);
+   setAfficherFormulaire(true);
   }
 
   function modifierChanson(chanson: Chanson) {
@@ -412,7 +412,13 @@ useEffect(() => {
     setVideoUrl(chanson.video_url ?? "");
     setDecade(chanson.decade ?? "");
 
-    setAfficherFormulaire(true);
+   setAfficherFormulaire(true);
+
+setTimeout(() => {
+  document
+    .getElementById("formulaire-chanson")
+    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+}, 100);
   }
 
   function fermerFormulaire() {
@@ -932,7 +938,7 @@ useEffect(() => {
 
                 {/* FORMULAIRE */}
                 {afficherFormulaire && (
-                  <section className="bg-[#111111] border border-[#c9a227]/70 rounded-2xl p-6 md:p-8 mb-8">
+                  <section id="formulaire-chanson" className="bg-[#111111] border border-[#c9a227]/70 rounded-2xl p-6 md:p-8 mb-8">
 
                     <div className="flex items-center justify-between gap-4 mb-7">
 
@@ -1291,10 +1297,7 @@ useEffect(() => {
   </button>
 )}
 <button
-  onClick={() => {
-    alert("LE BOUTON MODIFIER FONCTIONNE");
-    modifierChanson(chanson);
-  }}
+  onClick={() => modifierChanson(chanson)}
   className="bg-[#222] hover:bg-[#333] border border-[#555] hover:border-[#d4af37] text-white font-bold px-5 py-3 rounded-xl transition"
 >
   ✏️ Modifier
