@@ -1333,7 +1333,11 @@ async function supprimerChanson(chanson: Chanson) {
 
                             {chanson.video_url && (
   <button
-    onClick={() => window.open(chanson.video_url!, "_blank")}
+    onClick={() => {
+  alert("LE SUIVI EST BIEN APPELÉ");
+  void enregistrerRepetition(chanson);
+  window.open(chanson.video_url!, "_blank");
+}}
     className="bg-[#102414] border border-green-700 px-3 py-1 rounded-full text-xs text-green-400 hover:bg-green-900/50 transition"
   >
     ▶️ Lancer la vidéo
