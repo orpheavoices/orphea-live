@@ -346,14 +346,37 @@ useEffect(() => {
     );
   }
 
-  function chanter(demande: Demande) {
+ async function chanter(demande: Demande) {
   if (!demande.video_url && !demande.karaoke_url) {
     alert(
       `Aucun karaoké n'est enregistré pour « ${demande.titre} ».`
     );
     return;
   }
+  // Enregistrer la répétition de la chanson
+  const { data: chanson } = await supabase
+    .from("songs")
+    .select("id, nombre_repetitions")
+    .eq("title", demande.titre)
+    .eq("artist", demande.artiste)
+    .maybeSingle();
 
+  if (chanson) {
+    const { error: erreurRepetition } = await supabase
+      .from("songs")
+      .update({
+        derniere_repetition: new Date().toISOString().split("T")[0],
+        nombre_repetitions: (chanson.nombre_repetitions ?? 0) + 1,
+      })
+      .eq("id", chanson.id);
+
+    if (erreurRepetition) {
+      console.error(
+        "Impossible d'enregistrer la répétition :",
+        erreurRepetition
+      );
+    }
+  }
   changerStatut(demande.id, "En cours");
 
   const params = new URLSearchParams();
