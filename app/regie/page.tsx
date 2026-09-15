@@ -1290,12 +1290,15 @@ useEffect(() => {
     ▶️ Vidéo
   </button>
 )}
-                        <button
-                          onClick={() => modifierChanson(chanson)}
-                          className="bg-[#222] hover:bg-[#333] border border-[#555] hover:border-[#d4af37] text-white font-bold px-5 py-3 rounded-xl transition"
-                        >
-                          ✏️ Modifier
-                        </button>
+<button
+  onClick={() => {
+    alert("LE BOUTON MODIFIER FONCTIONNE");
+    modifierChanson(chanson);
+  }}
+  className="bg-[#222] hover:bg-[#333] border border-[#555] hover:border-[#d4af37] text-white font-bold px-5 py-3 rounded-xl transition"
+>
+  ✏️ Modifier
+</button>
 <button
   onClick={() => basculerActif(chanson)}
   className={`border rounded-lg px-4 py-2 font-semibold ${
