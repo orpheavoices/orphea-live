@@ -425,7 +425,34 @@ setTimeout(() => {
     setAfficherFormulaire(false);
     setChansonEnEdition(null);
   }
+async function supprimerChanson(chanson: Chanson) {
+  const confirmation = window.confirm(
+    `Voulez-vous vraiment supprimer « ${chanson.title} » de ${chanson.artist} ?\n\nCette action est définitive.`
+  );
 
+  if (!confirmation) return;
+
+  const { error } = await supabase
+    .from("songs")
+    .delete()
+    .eq("id", chanson.id);
+
+  if (error) {
+    console.error("Erreur suppression :", error);
+    alert(`Impossible de supprimer la chanson.\n\n${error.message}`);
+    return;
+  }
+
+  setChansons((anciennes) =>
+    anciennes.filter((c) => c.id !== chanson.id)
+  );
+
+  if (chansonEnEdition?.id === chanson.id) {
+    fermerFormulaire();
+  }
+
+  alert(`« ${chanson.title} » a été supprimée du catalogue.`);
+}
   async function enregistrerChanson() {
     if (!titre.trim() || !artiste.trim()) {
       alert("Le titre et l'artiste sont obligatoires.");
@@ -1301,6 +1328,12 @@ setTimeout(() => {
   className="bg-[#222] hover:bg-[#333] border border-[#555] hover:border-[#d4af37] text-white font-bold px-5 py-3 rounded-xl transition"
 >
   ✏️ Modifier
+</button>
+<button
+  onClick={() => supprimerChanson(chanson)}
+  className="bg-red-900/40 hover:bg-red-800/60 border border-red-500 text-red-400 font-bold px-5 py-3 rounded-xl transition"
+>
+  🗑️ Supprimer
 </button>
 <button
   onClick={() => basculerActif(chanson)}
