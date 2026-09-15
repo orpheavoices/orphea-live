@@ -33,6 +33,8 @@ type Chanson = {
   karaoke_url: string | null;
   video_url: string | null;
   decade: string | null;
+  derniere_repetition: string | null;
+nombre_repetitions: number | null;
   actif: boolean;
 };
 
@@ -174,7 +176,7 @@ async function basculerActif(chanson: Chanson) {
     const { data, error } = await supabase
       .from("songs")
       .select(
-        "id, title, artist, year, duration, difficulty, status, favorite, notes, langue, presentation, interpretation, karaoke_url, video_url, decade,actif"
+        "id, title, artist, year, duration, difficulty, status, favorite, notes, langue, presentation, interpretation, karaoke_url, video_url, decade,actif,derniere_repetition,nombre_repetitions"
       )
       .order("title", { ascending: true });
 
@@ -353,32 +355,7 @@ useEffect(() => {
     );
     return;
   }
-  // Enregistrer la répétition de la chanson
-  const { data: chanson } = await supabase
-    .from("songs")
-    .select("id, nombre_repetitions")
-    .eq("title", demande.titre)
-    .eq("artist", demande.artiste)
-    .maybeSingle();
-
-  if (chanson) {
-    const { error: erreurRepetition } = await supabase
-      .from("songs")
-      .update({
-        derniere_repetition: new Date().toISOString().split("T")[0],
-        nombre_repetitions: (chanson.nombre_repetitions ?? 0) + 1,
-      })
-      .eq("id", chanson.id);
-
-    if (erreurRepetition) {
-      console.error(
-        "Impossible d'enregistrer la répétition :",
-        erreurRepetition
-      );
-    }
-  }
-  changerStatut(demande.id, "En cours");
-
+      changerStatut(demande.id, "En cours");
   const params = new URLSearchParams();
 
   params.set("titre", demande.titre);
@@ -448,6 +425,44 @@ setTimeout(() => {
     setAfficherFormulaire(false);
     setChansonEnEdition(null);
   }
+  async function enregistrerRepetition(chanson: Chanson) {
+  const { data, error } = await supabase
+    .from("songs")
+    .select("nombre_repetitions")
+    .eq("id", chanson.id)
+    .single();
+
+  if (error) {
+    console.error("Erreur lecture répétitions :", error);
+    return;
+  }
+
+  const { error: erreurMiseAJour } = await supabase
+    .from("songs")
+    .update({
+      derniere_repetition: new Date().toISOString().split("T")[0],
+      nombre_repetitions: (data.nombre_repetitions ?? 0) + 1,
+    })
+    .eq("id", chanson.id);
+
+  if (erreurMiseAJour) {
+    console.error("Erreur enregistrement répétition :", erreurMiseAJour);
+    return;
+  }
+
+  setChansons((anciennes) =>
+    anciennes.map((c) =>
+      c.id === chanson.id
+        ? {
+            ...c,
+            derniere_repetition:
+              new Date().toISOString().split("T")[0],
+            nombre_repetitions: (data.nombre_repetitions ?? 0) + 1,
+          }
+        : c
+    )
+  );
+}
 async function supprimerChanson(chanson: Chanson) {
   const confirmation = window.confirm(
     `Voulez-vous vraiment supprimer « ${chanson.title} » de ${chanson.artist} ?\n\nCette action est définitive.`
@@ -1340,7 +1355,10 @@ async function supprimerChanson(chanson: Chanson) {
                         </div>
 {chanson.video_url && (
   <button
-    onClick={() => window.open(chanson.video_url!, "_blank")}
+   onClick={() => {
+  void enregistrerRepetition(chanson);
+  window.open(chanson.video_url!, "_blank");
+}}
     className="bg-green-900/40 hover:bg-green-800/60 border border-green-500 text-green-400 rounded-lg px-4 py-2 font-semibold"
   >
     ▶️ Vidéo
