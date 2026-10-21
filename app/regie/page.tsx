@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 
 type Demande = {
   id: number;
+  song_id: number | null;
   titre: string;
   artiste: string;
   prenom: string;
@@ -120,7 +121,7 @@ setSoireeDateDebut(soiree.date_debut ?? null);
 
     const { data: chansonsData, error: chansonsError } = await supabase
       .from("songs")
-      .select("title, artist, karaoke_url, video_url, presentation");
+     .select("id, title, artist, karaoke_url, video_url, presentation");
 
     if (chansonsError) {
       console.error(chansonsError);
@@ -141,6 +142,7 @@ setSoireeDateDebut(soiree.date_debut ?? null);
 
         return {
           ...demande,
+song_id: chanson?.id ?? null,
           karaoke_url: chanson?.karaoke_url ?? null,
           video_url: chanson?.video_url ?? null,
           presentation: chanson?.presentation ?? null,
@@ -359,9 +361,15 @@ useEffect(() => {
       changerStatut(demande.id, "En cours");
   const params = new URLSearchParams();
 
+params.set("launchId", crypto.randomUUID());
+
   params.set("titre", demande.titre);
   params.set("artiste", demande.artiste);
   params.set("demandeId", demande.id.toString());
+
+if (demande.song_id !== null) {
+  params.set("songId", demande.song_id.toString());
+}
 
   if (demande.video_url) {
     params.set("video", demande.video_url);
@@ -1029,12 +1037,21 @@ async function supprimerChanson(chanson: Chanson) {
                   >
                     ＋ Ajouter une chanson
                   </button>
+
 <button
   onClick={() => (window.location.href = "/regie/verification")}
   className="border border-[#d4af37] text-[#d4af37] hover:bg-[#d4af37] hover:text-black font-bold px-6 py-3 rounded-xl transition"
 >
   🎬 Vérifier le catalogue
 </button>
+
+<button
+  onClick={() => (window.location.href = "/regie/repetition")}
+  className="border border-green-500 text-green-400 hover:bg-green-500 hover:text-black font-bold px-6 py-3 rounded-xl transition"
+>
+  🎤 Répétition
+</button>
+
                 </div>
 
                 {/* FORMULAIRE */}
@@ -1404,15 +1421,31 @@ async function supprimerChanson(chanson: Chanson) {
                             )}
 
                             {chanson.video_url && (
-  <button
-   onClick={() => {
-  void enregistrerRepetition(chanson);
-  window.open(chanson.video_url!, "_blank");
-}}
-    className="bg-[#102414] border border-green-700 px-3 py-1 rounded-full text-xs text-green-400 hover:bg-green-900/50 transition"
-  >
-    ▶️ Lancer la vidéo
-  </button>
+
+<button
+  onClick={() => {
+    const params = new URLSearchParams();
+
+    params.set("titre", chanson.title);
+    params.set("artiste", chanson.artist ?? "");
+    params.set("songId", chanson.id.toString());
+    params.set("launchId", crypto.randomUUID());
+
+    if (chanson.video_url) {
+      params.set("video", chanson.video_url);
+    }
+
+    if (chanson.karaoke_url) {
+      params.set("karaoke", chanson.karaoke_url);
+    }
+
+    window.location.href = `/regie/lecteur?${params.toString()}`;
+  }}
+  className="bg-[#102414] border border-green-700 px-3 py-1 rounded-full text-xs text-green-400 hover:bg-green-900/50 transition"
+>
+  ▶ Lancer la vidéo
+</button>
+
 )}
 
                             {chanson.karaoke_url && (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -15,10 +15,42 @@ function DemandeForm() {
   const [dedicace, setDedicace] = useState("");
   const [message, setMessage] = useState("");
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
+  const [etatSoiree, setEtatSoiree] = useState<"verification" | "ouverte" | "fermee" | "erreur">("verification");
+
+  async function verifierSoireeOuverte() {
+    const { data, error } = await supabase
+      .from("soirees")
+      .select("id")
+      .eq("statut", "ouverte")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Impossible de vérifier la soirée ouverte :", error);
+      setEtatSoiree("erreur");
+      return;
+    }
+
+    setEtatSoiree(data ? "ouverte" : "fermee");
+  }
+
+  useEffect(() => {
+    void verifierSoireeOuverte();
+    // Actualise périodiquement l'état, y compris si le client a laissé la page ouverte.
+    const intervalle = window.setInterval(() => {
+      void verifierSoireeOuverte();
+    }, 15000);
+    return () => window.clearInterval(intervalle);
+  }, []);
 
   async function envoyerDemande() {
     if (!prenom.trim()) {
       alert("Veuillez indiquer votre prénom.");
+      return;
+    }
+
+    if (etatSoiree !== "ouverte") {
+      await verifierSoireeOuverte();
+      alert("Les demandes ne sont pas encore ouvertes. Veuillez réessayer dans quelques instants.");
       return;
     }
 
@@ -33,9 +65,12 @@ function DemandeForm() {
 
     if (erreurSoiree || !soiree) {
       setEnvoiEnCours(false);
-      alert("Aucune soirée n'est actuellement ouverte.");
+      setEtatSoiree("fermee");
+      alert("Les demandes ne sont pas encore ouvertes. Veuillez réessayer dans quelques instants.");
       return;
     }
+
+    setEtatSoiree("ouverte");
 
     // Enregistrement de la demande
     const { error } = await supabase.from("demandes").insert({
@@ -190,26 +225,49 @@ function DemandeForm() {
 
               </div>
 
+              {/* DISPONIBILITÉ DE LA SOIRÉE */}
+              {etatSoiree === "verification" && (
+                <div role="status" className="bg-[#1a1a12] border border-[#8a7426] rounded-xl p-4">
+                  <p className="text-gray-200 text-sm">Vérification de l’ouverture des demandes…</p>
+                </div>
+              )}
+
+              {etatSoiree === "fermee" && (
+                <div role="status" className="bg-[#1a1212] border border-[#6e1c22] rounded-xl p-4">
+                  <p className="font-semibold text-[#f0d36b]">Les demandes de chansons ouvriront prochainement.</p>
+                  <p className="text-gray-300 text-sm mt-1">Vous pourrez envoyer votre choix dès que la soirée sera ouverte. Cette page vérifiera automatiquement la disponibilité.</p>
+                </div>
+              )}
+
+              {etatSoiree === "erreur" && (
+                <div role="status" className="bg-[#1a1212] border border-[#6e1c22] rounded-xl p-4">
+                  <p className="text-gray-300 text-sm">Impossible de vérifier si les demandes sont ouvertes. Veuillez réessayer dans quelques instants.</p>
+                  <button type="button" onClick={() => void verifierSoireeOuverte()} className="mt-2 underline text-[#f0d36b]">Réessayer</button>
+                </div>
+              )}
+
               {/* INFO */}
               <div className="bg-[#1a1212] border border-[#6e1c22] rounded-xl p-4">
-
                 <p className="text-gray-300 text-sm leading-relaxed">
                   ❤️ Votre demande est gratuite.
                   <br />
                   Votre dédicace sera lue lors de la prestation.
                 </p>
-
               </div>
 
               {/* BOUTON ENVOI */}
               <button
                 onClick={envoyerDemande}
-                disabled={envoiEnCours}
+                disabled={envoiEnCours || etatSoiree !== "ouverte"}
                 className="w-full bg-[#d4af37] hover:bg-[#f0d36b] disabled:bg-[#555] disabled:text-gray-300 text-black font-bold py-4 rounded-xl transition text-lg"
               >
                 {envoiEnCours
                   ? "Envoi en cours..."
-                  : "🎤 Envoyer ma demande"}
+                  : etatSoiree === "verification"
+                    ? "Vérification en cours..."
+                    : etatSoiree === "ouverte"
+                      ? "🎤 Envoyer ma demande"
+                      : "Demandes momentanément fermées"}
               </button>
 
               {/* RETOUR RECHERCHE */}

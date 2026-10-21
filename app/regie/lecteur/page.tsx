@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 function Lecteur() {
@@ -12,8 +12,42 @@ function Lecteur() {
   const video = searchParams.get("video") || "";
   const karaoke = searchParams.get("karaoke") || "";
   const demandeId = searchParams.get("demandeId") || "";
+const songId = searchParams.get("songId") || "";
+const launchId = searchParams.get("launchId") || "";
 
   const [terminaisonEnCours, setTerminaisonEnCours] = useState(false);
+  
+  const [enregistrementLance, setEnregistrementLance] = useState(false);
+
+  useEffect(() => {
+    if (!songId || !launchId || enregistrementLance) return;
+
+    setEnregistrementLance(true);
+
+    const enregistrer = async () => {
+      try {
+        const reponse = await fetch("/api/enregistrer-interpretation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            songId: Number(songId),
+            launchId,
+            demandeId: demandeId ? Number(demandeId) : null,
+            contexte: demandeId ? "public" : "repetition",
+          }),
+        });
+
+        if (!reponse.ok) {
+          console.error("Échec de l'enregistrement de l'interprétation.");
+        }
+      } catch (erreur) {
+        console.error("Erreur lors de l'enregistrement :", erreur);
+      }
+    };
+
+    void enregistrer();
+  }, [songId, launchId, demandeId, enregistrementLance]);
+
 
   /*
    * Détermine si le lien est un lien YouTube
