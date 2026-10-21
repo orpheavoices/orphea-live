@@ -20,18 +20,33 @@ type Chanson = {
   genres: string[];
 };
 
-type Genre = {
-  id: number;
-  nom: string;
-};
+function normaliserLangue(langue: string | null | undefined): string {
+  const valeur = (langue ?? "").trim().toLowerCase();
+  if (["fr", "français", "francais", "french"].includes(valeur)) return "FR";
+  if (["en", "anglais", "english", "anglaise"].includes(valeur)) return "EN";
+  if (["it", "italien", "italienne", "italiano", "italian"].includes(valeur)) return "IT";
+  if (["es", "espagnol", "espagnole", "español", "spanish"].includes(valeur)) return "ES";
+  if (["de", "allemand", "allemande", "deutsch", "german"].includes(valeur)) return "DE";
+  if (["pt", "portugais", "portugaise", "português", "portuguese"].includes(valeur)) return "PT";
+  return (langue ?? "").trim().toUpperCase();
+}
+
+function libelleLangue(code: string): string {
+  const libelles: Record<string, string> = {
+    FR: "Français (FR)",
+    EN: "English (EN)",
+    IT: "Italiano (IT)",
+    ES: "Español (ES)",
+    DE: "Deutsch (DE)",
+    PT: "Português (PT)",
+  };
+  return libelles[code] ?? code;
+}
 
 export default function RecherchePage() {
   const [chansons, setChansons] = useState<Chanson[]>([]);
-  const [genres, setGenres] = useState<Genre[]>([]);
-
   const [titreRecherche, setTitreRecherche] = useState("");
   const [artisteRecherche, setArtisteRecherche] = useState("");
-  const [genreRecherche, setGenreRecherche] = useState("");
   const [decadeRecherche, setDecadeRecherche] = useState("");
   const [langueRecherche, setLangueRecherche] = useState("");
   const [favorisSeulement, setFavorisSeulement] = useState(false);
@@ -55,38 +70,14 @@ export default function RecherchePage() {
       const result = await response.json();
 
       const songs = result.songs ?? [];
-      const genres = result.genres ?? [];
-      const songGenres = result.songGenres ?? [];
-
-      const genresParId = new Map<number, string>();
-
-      genres.forEach((genre: Genre) => {
-        genresParId.set(genre.id, genre.nom);
-      });
-
-      const genresParChanson = new Map<number, string[]>();
-
-      songGenres.forEach(
-        (relation: { song_id: number; genre_id: number }) => {
-          const nomGenre = genresParId.get(relation.genre_id);
-
-          if (!nomGenre) return;
-
-          const liste = genresParChanson.get(relation.song_id) ?? [];
-          liste.push(nomGenre);
-          genresParChanson.set(relation.song_id, liste);
-        }
-      );
-
       const chansonsAvecGenres: Chanson[] = songs.map(
         (chanson: Omit<Chanson, "genres">) => ({
           ...chanson,
-          genres: genresParChanson.get(chanson.id) ?? [],
+          genres: [],
         })
       );
 
       setChansons(chansonsAvecGenres);
-      setGenres(genres);
       setChargement(false);
 
       console.log(
@@ -98,7 +89,6 @@ export default function RecherchePage() {
 
       setErreur("Impossible de charger le catalogue.");
       setChansons([]);
-      setGenres([]);
       setChargement(false);
     }
   }
@@ -109,10 +99,10 @@ export default function RecherchePage() {
   const langues = Array.from(
     new Set(
       chansons
-        .map((chanson) => chanson.langue)
-        .filter((langue): langue is string => Boolean(langue))
+        .map((chanson) => normaliserLangue(chanson.langue))
+        .filter(Boolean)
     )
-  ).sort();
+  ).sort((a, b) => libelleLangue(a).localeCompare(libelleLangue(b), "fr"));
 
   const decennies = Array.from(
     new Set(
@@ -123,34 +113,16 @@ export default function RecherchePage() {
   ).sort();
 
   const chansonsFiltrees = chansons.filter((chanson) => {
-    const correspondTitre = chanson.title
-      .toLowerCase()
-      .includes(titreRecherche.toLowerCase());
-
-    const correspondArtiste = chanson.artist
-      .toLowerCase()
-      .includes(artisteRecherche.toLowerCase());
-
-    const correspondGenre =
-      !genreRecherche || chanson.genres.includes(genreRecherche);
-
-    const correspondDecade =
-      !decadeRecherche || chanson.decade === decadeRecherche;
-
-    const correspondLangue =
-      !langueRecherche || chanson.langue === langueRecherche;
-
-    const correspondFavori =
-      !favorisSeulement || chanson.favorite === true;
-
-    return (
-      correspondTitre &&
-      correspondArtiste &&
-      correspondGenre &&
-      correspondDecade &&
-      correspondLangue &&
-      correspondFavori
-    );
+    if (titreRecherche.trim()) {
+      return chanson.title.toLowerCase().includes(titreRecherche.trim().toLowerCase());
+    }
+    if (artisteRecherche.trim()) {
+      return chanson.artist.toLowerCase().includes(artisteRecherche.trim().toLowerCase());
+    }
+    if (decadeRecherche) return chanson.decade === decadeRecherche;
+    if (langueRecherche) return normaliserLangue(chanson.langue) === langueRecherche;
+    if (favorisSeulement) return chanson.favorite === true;
+    return true;
   });
 
   return (
@@ -215,7 +187,16 @@ export default function RecherchePage() {
                   type="text"
                   placeholder="Ex. L'envie"
                   value={titreRecherche}
-                  onChange={(e) => setTitreRecherche(e.target.value)}
+                  onChange={(e) => {
+                    const valeur = e.target.value;
+                    setTitreRecherche(valeur);
+                    if (valeur) {
+                      setArtisteRecherche("");
+                      setDecadeRecherche("");
+                      setLangueRecherche("");
+                      setFavorisSeulement(false);
+                    }
+                  }}
                   className="w-full bg-[#080808] border border-[#555] focus:border-[#d4af37] rounded-xl p-3.5 text-white placeholder-gray-500 outline-none transition"
                 />
               </div>
@@ -230,30 +211,18 @@ export default function RecherchePage() {
                   type="text"
                   placeholder="Ex. Johnny Hallyday"
                   value={artisteRecherche}
-                  onChange={(e) => setArtisteRecherche(e.target.value)}
+                  onChange={(e) => {
+                    const valeur = e.target.value;
+                    setArtisteRecherche(valeur);
+                    if (valeur) {
+                      setTitreRecherche("");
+                      setDecadeRecherche("");
+                      setLangueRecherche("");
+                      setFavorisSeulement(false);
+                    }
+                  }}
                   className="w-full bg-[#080808] border border-[#555] focus:border-[#d4af37] rounded-xl p-3.5 text-white placeholder-gray-500 outline-none transition"
                 />
-              </div>
-
-              {/* GENRE */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">
-                  Genre
-                </label>
-
-                <select
-                  value={genreRecherche}
-                  onChange={(e) => setGenreRecherche(e.target.value)}
-                  className="w-full bg-[#080808] border border-[#555] focus:border-[#d4af37] rounded-xl p-3.5 text-white outline-none"
-                >
-                  <option value="">Tous les genres</option>
-
-                  {genres.map((genre) => (
-                    <option key={genre.id} value={genre.nom}>
-                      {genre.nom}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {/* DÉCENNIE */}
@@ -264,7 +233,16 @@ export default function RecherchePage() {
 
                 <select
                   value={decadeRecherche}
-                  onChange={(e) => setDecadeRecherche(e.target.value)}
+                  onChange={(e) => {
+                    const valeur = e.target.value;
+                    setDecadeRecherche(valeur);
+                    if (valeur) {
+                      setTitreRecherche("");
+                      setArtisteRecherche("");
+                      setLangueRecherche("");
+                      setFavorisSeulement(false);
+                    }
+                  }}
                   className="w-full bg-[#080808] border border-[#555] focus:border-[#d4af37] rounded-xl p-3.5 text-white outline-none"
                 >
                   <option value="">Toutes les décennies</option>
@@ -285,14 +263,23 @@ export default function RecherchePage() {
 
                 <select
                   value={langueRecherche}
-                  onChange={(e) => setLangueRecherche(e.target.value)}
+                  onChange={(e) => {
+                    const valeur = e.target.value;
+                    setLangueRecherche(valeur);
+                    if (valeur) {
+                      setTitreRecherche("");
+                      setArtisteRecherche("");
+                      setDecadeRecherche("");
+                      setFavorisSeulement(false);
+                    }
+                  }}
                   className="w-full bg-[#080808] border border-[#555] focus:border-[#d4af37] rounded-xl p-3.5 text-white outline-none"
                 >
                   <option value="">Toutes les langues</option>
 
                   {langues.map((langue) => (
                     <option key={langue} value={langue}>
-                      {langue}
+                      {libelleLangue(langue)}
                     </option>
                   ))}
                 </select>
@@ -305,9 +292,16 @@ export default function RecherchePage() {
                   <input
                     type="checkbox"
                     checked={favorisSeulement}
-                    onChange={(e) =>
-                      setFavorisSeulement(e.target.checked)
-                    }
+                    onChange={(e) => {
+                      const coche = e.target.checked;
+                      setFavorisSeulement(coche);
+                      if (coche) {
+                        setTitreRecherche("");
+                        setArtisteRecherche("");
+                        setDecadeRecherche("");
+                        setLangueRecherche("");
+                      }
+                    }}
                     className="w-5 h-5 accent-[#d4af37]"
                   />
 
@@ -381,7 +375,7 @@ export default function RecherchePage() {
 
                     {chanson.langue && (
                       <span className="bg-[#1c1c1c] border border-[#444] text-gray-300 px-3 py-1 rounded-full text-sm">
-                        {chanson.langue}
+                        {libelleLangue(normaliserLangue(chanson.langue))}
                       </span>
                     )}
 
@@ -397,14 +391,7 @@ export default function RecherchePage() {
                       </span>
                     )}
 
-                    {chanson.genres.map((genre) => (
-                      <span
-                        key={genre}
-                        className="bg-[#3b1115] border border-[#8f1d24] text-[#f0d36b] px-3 py-1 rounded-full text-sm"
-                      >
-                        {genre}
-                      </span>
-                    ))}
+
 
                   </div>
 

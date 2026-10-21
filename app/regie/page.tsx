@@ -62,6 +62,7 @@ export default function RegiePage() {
   const [favorite, setFavorite] = useState(false);
   const [notes, setNotes] = useState("");
   const [langue, setLangue] = useState("");
+  const [erreurFormulaire, setErreurFormulaire] = useState("");
   const [presentation, setPresentation] = useState("");
   const [interpretation, setInterpretation] = useState("");
   const [karaokeUrl, setKaraokeUrl] = useState("");
@@ -385,6 +386,7 @@ useEffect(() => {
     setFavorite(false);
     setNotes("");
     setLangue("");
+    setErreurFormulaire("");
     setPresentation("");
     setInterpretation("");
     setKaraokeUrl("");
@@ -392,6 +394,35 @@ useEffect(() => {
     setDecade("");
 
    setAfficherFormulaire(true);
+  }
+
+  const optionsDecennies = [
+    { valeur: "Années 50", libelle: "Années 50" },
+    { valeur: "Années 60", libelle: "Années 60" },
+    { valeur: "Années 70", libelle: "Années 70" },
+    { valeur: "Années 80", libelle: "Années 80" },
+    { valeur: "Années 90", libelle: "Années 90" },
+    { valeur: "Années 2000", libelle: "Années 2000" },
+    { valeur: "Années 2010", libelle: "Années 2010" },
+    { valeur: "Années 2020", libelle: "Années 2020" },
+  ];
+
+  function normaliserDecennie(valeur: string | null | undefined): string {
+    const v = (valeur ?? "").trim().toLowerCase().replace(/é/g, "e");
+    const correspondance: Record<string, string> = {
+      "50": "Années 50", "annees 50": "Années 50", "annee 50": "Années 50",
+      "60": "Années 60", "annees 60": "Années 60", "annee 60": "Années 60",
+      "70": "Années 70", "annees 70": "Années 70", "annee 70": "Années 70",
+      "80": "Années 80", "annees 80": "Années 80", "annee 80": "Années 80",
+      "90": "Années 90", "annees 90": "Années 90", "annee 90": "Années 90",
+      "00": "Années 2000", "0": "Années 2000", "2000": "Années 2000",
+      "annees 00": "Années 2000", "annees 2000": "Années 2000", "annee 2000": "Années 2000",
+      "10": "Années 2010", "2010": "Années 2010", "annees 10": "Années 2010",
+      "annees 2010": "Années 2010", "annee 2010": "Années 2010",
+      "20": "Années 2020", "2020": "Années 2020", "annees 20": "Années 2020",
+      "annees 2020": "Années 2020", "annee 2020": "Années 2020",
+    };
+    return correspondance[v] ?? (optionsDecennies.some((o) => o.valeur === valeur) ? valeur! : "");
   }
 
   function modifierChanson(chanson: Chanson) {
@@ -405,12 +436,20 @@ useEffect(() => {
     setStatutChanson(chanson.status ?? "");
     setFavorite(chanson.favorite ?? false);
     setNotes(chanson.notes ?? "");
-    setLangue(chanson.langue ?? "");
+    const langueExistante = (chanson.langue ?? "").trim();
+    const langueNormalisee: Record<string, string> = {
+      "FRANÇAIS": "FR", "FRANCAIS": "FR", "FRENCH": "FR",
+      "ANGLAIS": "EN", "ENGLISH": "EN",
+      "ITALIEN": "IT", "ITALIAN": "IT",
+      "ESPAGNOL": "ES", "SPANISH": "ES",
+    };
+    setLangue(langueNormalisee[langueExistante.toUpperCase()] ?? langueExistante.toUpperCase());
+    setErreurFormulaire("");
     setPresentation(chanson.presentation ?? "");
     setInterpretation(chanson.interpretation ?? "");
     setKaraokeUrl(chanson.karaoke_url ?? "");
     setVideoUrl(chanson.video_url ?? "");
-    setDecade(chanson.decade ?? "");
+    setDecade(normaliserDecennie(chanson.decade));
 
    setAfficherFormulaire(true);
 
@@ -489,10 +528,11 @@ async function supprimerChanson(chanson: Chanson) {
 }
   async function enregistrerChanson() {
     if (!titre.trim() || !artiste.trim()) {
-      alert("Le titre et l'artiste sont obligatoires.");
+      setErreurFormulaire("Veuillez compléter les deux champs obligatoires : titre et artiste.");
       return;
     }
 
+    setErreurFormulaire("");
     setEnregistrementEnCours(true);
 
     const donnees = {
@@ -509,7 +549,7 @@ async function supprimerChanson(chanson: Chanson) {
       interpretation: interpretation.trim() || null,
       karaoke_url: karaokeUrl.trim() || null,
       video_url: videoUrl.trim() || null,
-      decade: decade.trim() || null,
+      decade: normaliserDecennie(decade) || null,
     };
 
     let error;
@@ -1018,6 +1058,16 @@ async function supprimerChanson(chanson: Chanson) {
 
                     </div>
 
+                    <p className="mb-6 text-sm text-gray-300">
+                      Les champs marqués d’un <span className="font-bold text-red-400">*</span> sont obligatoires.
+                    </p>
+
+                    {erreurFormulaire && (
+                      <div role="alert" className="mb-5 rounded-xl border border-red-600 bg-red-950 p-3 text-red-200">
+                        {erreurFormulaire}
+                      </div>
+                    )}
+
                     <div className="grid md:grid-cols-2 gap-5">
 
                       {/* TITRE */}
@@ -1028,7 +1078,12 @@ async function supprimerChanson(chanson: Chanson) {
 
                         <input
                           value={titre}
-                          onChange={(e) => setTitre(e.target.value)}
+                          onChange={(e) => {
+                            setTitre(e.target.value);
+                            setErreurFormulaire("");
+                          }}
+                          required
+                          aria-required="true"
                           className="w-full bg-[#080808] border border-[#555] focus:border-[#d4af37] rounded-xl p-3 text-white outline-none"
                         />
                       </div>
@@ -1041,7 +1096,12 @@ async function supprimerChanson(chanson: Chanson) {
 
                         <input
                           value={artiste}
-                          onChange={(e) => setArtiste(e.target.value)}
+                          onChange={(e) => {
+                            setArtiste(e.target.value);
+                            setErreurFormulaire("");
+                          }}
+                          required
+                          aria-required="true"
                           className="w-full bg-[#080808] border border-[#555] focus:border-[#d4af37] rounded-xl p-3 text-white outline-none"
                         />
                       </div>
@@ -1066,12 +1126,18 @@ async function supprimerChanson(chanson: Chanson) {
                           Décennie
                         </label>
 
-                        <input
+                        <select
                           value={decade}
                           onChange={(e) => setDecade(e.target.value)}
-                          placeholder="Ex. 80, 90, 00, 10"
                           className="w-full bg-[#080808] border border-[#555] rounded-xl p-3 text-white outline-none"
-                        />
+                        >
+                          <option value="">Sélectionner une décennie</option>
+                          {optionsDecennies.map((option) => (
+                            <option key={option.valeur} value={option.valeur}>
+                              {option.libelle}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
                       {/* DURÉE */}
@@ -1106,16 +1172,22 @@ async function supprimerChanson(chanson: Chanson) {
 
                       {/* LANGUE */}
                       <div>
-                        <label className="block text-gray-200 font-semibold mb-2">
+                        <label htmlFor="langue-chanson" className="block text-gray-200 font-semibold mb-2">
                           Langue
                         </label>
 
-                        <input
+                        <select
+                          id="langue-chanson"
                           value={langue}
                           onChange={(e) => setLangue(e.target.value)}
-                          placeholder="Français, Anglais..."
                           className="w-full bg-[#080808] border border-[#555] rounded-xl p-3 text-white outline-none"
-                        />
+                        >
+                          <option value="">Sélectionner une langue</option>
+                          <option value="FR">Français (FR)</option>
+                          <option value="EN">Anglais (EN)</option>
+                          <option value="IT">Italien (IT)</option>
+                          <option value="ES">Espagnol (ES)</option>
+                        </select>
                       </div>
 
                       {/* STATUT */}
