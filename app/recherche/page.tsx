@@ -53,6 +53,32 @@ export default function RecherchePage() {
 
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState("");
+  const [etatSoiree, setEtatSoiree] = useState<"verification" | "ouverte" | "fermee" | "erreur">("verification");
+
+  useEffect(() => {
+    async function verifierSoireeOuverte() {
+      const { data, error } = await supabase
+        .from("soirees")
+        .select("id")
+        .eq("statut", "ouverte")
+        .maybeSingle();
+
+      if (error) {
+        console.error("Impossible de vérifier la soirée ouverte :", error);
+        setEtatSoiree("erreur");
+        return;
+      }
+
+      setEtatSoiree(data ? "ouverte" : "fermee");
+    }
+
+    void verifierSoireeOuverte();
+    const intervalle = window.setInterval(() => {
+      void verifierSoireeOuverte();
+    }, 15000);
+
+    return () => window.clearInterval(intervalle);
+  }, []);
 
   async function chargerChansons() {
     console.log(">>> CHARGEMENT DU CATALOGUE <<<");
@@ -173,7 +199,8 @@ export default function RecherchePage() {
           </div>
         </header>
 
-        {/* CONTENU */}
+        {/* CONTENU : catalogue accessible uniquement pendant une soirée ouverte */}
+        {etatSoiree === "ouverte" ? (
         <div className="max-w-6xl mx-auto px-5 py-8 md:py-12">
 
           {/* TITRE */}
@@ -497,6 +524,41 @@ export default function RecherchePage() {
           </footer>
 
         </div>
+        ) : (
+          <div className="max-w-3xl mx-auto px-6 py-16 md:py-24 text-center">
+            <p className="text-[#d4af37] uppercase tracking-[0.3em] text-sm mb-5">
+              Orphea Live
+            </p>
+            <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+              {etatSoiree === "verification"
+                ? "Vérification de la disponibilité..."
+                : etatSoiree === "erreur"
+                  ? "Disponibilité momentanément indisponible"
+                  : "Aucune soirée n’est actuellement ouverte"}
+            </h1>
+            <div className="flex justify-center items-center gap-4 mt-6">
+              <span className="h-px w-16 bg-[#d4af37]" />
+              <span className="text-[#d4af37] text-2xl">♫</span>
+              <span className="h-px w-16 bg-[#d4af37]" />
+            </div>
+            <p className="text-gray-300 text-lg mt-8 max-w-xl mx-auto leading-relaxed">
+              {etatSoiree === "erreur"
+                ? "Impossible de vérifier si les demandes sont ouvertes. Veuillez réessayer dans quelques instants."
+                : etatSoiree === "verification"
+                  ? "Merci de patienter quelques instants."
+                  : "Les demandes de chansons seront disponibles dès l’ouverture de la prochaine soirée."}
+            </p>
+            {etatSoiree === "erreur" && (
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-6 bg-[#d4af37] hover:bg-[#f0d36b] text-black font-bold px-6 py-3 rounded-xl transition"
+              >
+                Réessayer
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </main>
   );
