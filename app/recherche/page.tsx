@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -112,6 +112,33 @@ export default function RecherchePage() {
     )
   ).sort();
 
+  const filtreActif = titreRecherche.trim()
+    ? "titre"
+    : artisteRecherche.trim()
+      ? "artiste"
+      : decadeRecherche
+        ? "decennie"
+        : langueRecherche
+          ? "langue"
+          : favorisSeulement
+            ? "favoris"
+            : "aucun";
+
+  const libelleFiltreActif = filtreActif === "titre"
+    ? `Titre : ${titreRecherche.trim()}`
+    : filtreActif === "artiste"
+      ? `Artiste : ${artisteRecherche.trim()}`
+      : filtreActif === "decennie"
+        ? `Décennie : ${decadeRecherche}`
+        : filtreActif === "langue"
+          ? `Langue : ${libelleLangue(langueRecherche)}`
+          : filtreActif === "favoris"
+            ? "Mes coups de cœur uniquement"
+            : "Aucun filtre";
+
+  const classeFiltre = (nom: string) =>
+    `transition-opacity duration-150 ${filtreActif !== "aucun" && filtreActif !== nom ? "opacity-50" : "opacity-100"}`;
+
   const chansonsFiltrees = chansons.filter((chanson) => {
     if (titreRecherche.trim()) {
       return chanson.title.toLowerCase().includes(titreRecherche.trim().toLowerCase());
@@ -171,14 +198,17 @@ export default function RecherchePage() {
           {/* RECHERCHE */}
           <section className="bg-[#111111] border border-[#c9a227]/60 rounded-2xl p-5 md:p-7 shadow-2xl">
 
-            <h2 className="text-xl font-bold text-[#d4af37] mb-5">
+            <h2 className="text-xl font-bold text-[#d4af37] mb-3">
               Trouvez votre chanson
             </h2>
+            <p className="text-sm text-gray-400 mb-5">
+              Un seul filtre peut être actif à la fois. Choisir un autre critère remplace le précédent ; les autres champs sont alors atténués.
+            </p>
 
             <div className="grid md:grid-cols-2 gap-4">
 
               {/* TITRE */}
-              <div>
+              <div className={classeFiltre("titre")}>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">
                   Titre
                 </label>
@@ -202,7 +232,7 @@ export default function RecherchePage() {
               </div>
 
               {/* ARTISTE */}
-              <div>
+              <div className={classeFiltre("artiste")}>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">
                   Artiste
                 </label>
@@ -226,7 +256,7 @@ export default function RecherchePage() {
               </div>
 
               {/* DÉCENNIE */}
-              <div>
+              <div className={classeFiltre("decennie")}>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">
                   Décennie
                 </label>
@@ -256,7 +286,7 @@ export default function RecherchePage() {
               </div>
 
               {/* LANGUE */}
-              <div>
+              <div className={classeFiltre("langue")}>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">
                   Langue
                 </label>
@@ -286,7 +316,7 @@ export default function RecherchePage() {
               </div>
 
               {/* FAVORIS */}
-              <div className="flex items-end">
+              <div className={`${classeFiltre("favoris")} flex items-end`}>
                 <label className="flex items-center gap-3 cursor-pointer text-gray-200 bg-[#080808] border border-[#555] rounded-xl p-3.5 w-full hover:border-[#d4af37] transition">
 
                   <input
@@ -320,6 +350,13 @@ export default function RecherchePage() {
           {erreur && (
             <div className="mt-6 bg-red-950 border border-red-600 text-red-200 rounded-xl p-4">
               {erreur}
+            </div>
+          )}
+
+          {!chargement && (
+            <div className="mt-6 rounded-xl border border-[#c9a227]/50 bg-[#111111] px-4 py-3 text-sm">
+              <span className="text-gray-400">Filtre actif : </span>
+              <span className="font-semibold text-[#f0d36b]">{libelleFiltreActif}</span>
             </div>
           )}
 
