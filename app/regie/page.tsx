@@ -337,8 +337,8 @@ useEffect(() => {
       .eq("id", id);
 
     if (error) {
-      console.error(error);
-      alert("Impossible de modifier le statut de la demande.");
+      console.error("Erreur changement de statut :", error);
+      alert("Erreur changement de statut : " + error.message);
       return;
     }
 
