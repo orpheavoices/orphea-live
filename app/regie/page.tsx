@@ -358,8 +358,7 @@ useEffect(() => {
     );
     return;
   }
-      changerStatut(demande.id, "En cours");
-  const params = new URLSearchParams();
+      const params = new URLSearchParams();
 
 params.set("launchId", crypto.randomUUID());
 
